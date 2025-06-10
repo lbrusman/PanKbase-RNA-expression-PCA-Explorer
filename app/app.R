@@ -17,7 +17,7 @@ library(Matrix)
 library(viridis)
 library(factoextra)
 
-cell_types <- c("Acinar", "Alpha", "Beta", "Cycling Alpha", "Delta", "Ductal", "Endothelial", "Gamma + Epsilon", "Immune (Macrophages)", "MUC5B+ Ductal", "Quiescent Stellate")
+cell_types <- c("Acinar", "Active Stellate", "Alpha", "Beta", "Cycling Alpha", "Delta", "Ductal", "Endothelial", "Gamma + Epsilon", "Immune (Macrophages)", "MUC5B+ Ductal", "Quiescent Stellate")
 
 color_vars <- c("Description of diabetes status", "Age (years)", "Sex", "BMI", "Ethnicity", "Cause of death", "HbA1C percentage", "Chemistry", "Program")
 
@@ -85,12 +85,12 @@ server <- function(input, output) {
   
     PCA_fxn <- function() {
       # Get pseudobulk data for this cell type and filter for only untreated samples
-      fname <- paste0("code/PCA_results/", input$CellType, "_PCA_results.csv")
+      fname <- paste0("/Users/lbrusman/Desktop/Gaulton_lab/shiny_apps/PanKbase-RNA-expression-PCA-Explorer/app/outputs/PCA_results/", input$CellType, "_PCA_results.csv")
       pca_res <- read.csv(fname)
       
       # Make values friendly, combine categories, etc.
       # Change capitalization and naming of some metadata fields
-      pca_res$PanKbase_Description.of.diabetes.status <- recode(pca_res$PanKbase_Description.of.diabetes.status,
+      pca_res$pan_kbase_description_of_diabetes_status <- recode(pca_res$pan_kbase_description_of_diabetes_status,
                                                                  "non-diabetic" = "No diabetes",
                                                                  "type 1 diabetes" = "Type 1 diabetes",
                                                                  "type 2 diabetes" = "Type 2 diabetes",
@@ -100,12 +100,12 @@ server <- function(input, output) {
                                                                  "steroid-induced diabetes" = "Steroid-induced diabetes",
                                                                  "monogenic diabetes" = "Monogenic diabetes")
 
-      pca_res$PanKbase_Ethnicities <- recode(na_if(pca_res$PanKbase_Ethnicities, ""),
+      pca_res$pan_kbase_ethnicities <- recode(na_if(pca_res$pan_kbase_ethnicities, ""),
                                               "African American,Black" = "African American, Black",
                                               "Caucasian" = "White",
                                               .missing = "Unknown")
 
-      pca_res$PanKbase_Sex <- recode(pca_res$PanKbase_Sex,
+      pca_res$pan_kbase_sex <- recode(pca_res$pan_kbase_sex,
                                       female = "Female",
                                       male = "Male")
 
@@ -113,7 +113,7 @@ server <- function(input, output) {
                                 "IIDP,Prodo" = "IIDP")
 
       # Rename values that have different capitalization so they get grouped together and change blanks to unknown
-      pca_res$PanKbase_Cause.of.Death <- recode(na_if(pca_res$PanKbase_Cause.of.Death, ""),
+      pca_res$pan_kbase_cause_of_death <- recode(na_if(pca_res$pan_kbase_cause_of_death, ""),
                                                  "Cerebrovascular/stroke" = "Cerebrovascular/Stroke",
                                                  "Head Trauma" = "Head trauma",
                                                  "ICH/stroke" = "Cerebrovascular/Stroke",
@@ -123,30 +123,16 @@ server <- function(input, output) {
 
       # Rename columns to friendly names
       pca_res <- pca_res %>% rename("Program" = source,
-                                      "Age (years)" = PanKbase_Age..years.,
-                                      "C. Peptide (ng/ml)" = PanKbase_C.Peptide..ng.ml.,
-                                      "AAB-GADA value (unit/ml)" = PanKbase_AAB.GADA.value..unit.ml.,
-                                      "AAB-IA2 value (unit/ml)" = PanKbase_AAB.IA2.value..unit.ml.,
-                                      "AAB-IAA value (unit/ml)" = PanKbase_AAB.IAA.value..unit.ml.,
-                                      "AAB-ZNT8 value (unit/ml)" = PanKbase_AAB.ZNT8.value..unit.ml.,
-                                      "HbA1C percentage" = PanKbase_HbA1C..percentage.,
-                                      "Hospital stay (hours)" = PanKbase_Hospital.Stay..hours.,
-                                      "Description of diabetes status" = PanKbase_Description.of.diabetes.status,
-                                      "Cause of death" = PanKbase_Cause.of.Death,
-                                      "Sex" = PanKbase_Sex,
-                                      "BMI" = PanKbase_BMI,
-                                      "Ethnicity" = PanKbase_Ethnicities,
-                                      "Chemistry" = chemistry)
+                                    "Age (years)" = pan_kbase_age_years,
+                                    "HbA1C percentage" = pan_kbase_hb_a1c_percentage,
+                                    "Hospital stay (hours)" = pan_kbase_hospital_stay_hours,
+                                    "Description of diabetes status" = pan_kbase_description_of_diabetes_status,
+                                    "Cause of death" = pan_kbase_cause_of_death,
+                                    "Sex" = pan_kbase_sex,
+                                    "BMI" = pan_kbase_bmi,
+                                    "Ethnicity" = pan_kbase_ethnicities,
+                                    "Chemistry" = chemistry)
 
-      # Change NA AAB status to "Unknown"
-      pca_res <- pca_res %>% mutate(across(starts_with("PanKbase_AAB_"), ~ifelse(is.na(.x), "Unknown", .x)))
-
-      # Now change variable names to be friendly
-      pca_res <- pca_res %>% rename("AAB-GADA Positive" = PanKbase_AAB_GADA_POSITIVE,
-                                      "AAB-IA2 Positive" = PanKbase_AAB_IA2_POSITIVE,
-                                      "AAB-IAA Positive" = PanKbase_AAB_IAA_POSITIVE,
-                                      "AAB-ZNT8 Positive" = PanKbase_AAB_ZNT8_POSITIVE)
-      
 
       if (is.numeric(pca_res[,input$Color]) == TRUE) {
         p <- ggplot(pca_res, aes(x = PC1, y = PC2, color = !!sym(input$Color))) +
@@ -182,7 +168,7 @@ server <- function(input, output) {
     })
     
     contribs_fxn <- function() {
-      fname <- paste0("code/PCA_results/", input$CellType, "_all_PCA_results.rds")
+      fname <- paste0("/Users/lbrusman/Desktop/Gaulton_lab/shiny_apps/PanKbase-RNA-expression-PCA-Explorer/app/outputs/PCA_results/", input$CellType, "_all_PCA_results.rds")
       pca_res_all <- readRDS(fname)
 
       p <- fviz_contrib(pca_res_all, choice = "var", axes = as.numeric(input$PC), top = 10, fill = "#219197", color = "#219197", ggtheme = theme_classic()) +
