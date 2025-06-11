@@ -143,6 +143,7 @@ server <- function(input, output) {
 
       # Draw plots to color by continuous variables
       if (is.numeric(pca_res[,input$Color]) == TRUE) {
+        # Make PCA plot
         p <- ggplot(pca_res, aes(x = PC1, y = PC2, color = !!sym(input$Color))) +
           geom_point(size=2) +
           scale_color_gradientn(colors = viridis(length(unique(pca_res[,input$Color])))) +
@@ -159,6 +160,7 @@ server <- function(input, output) {
         # Set up color palettes
         collections <- unique(pca_res[,input$Color]) %>% sort()
         collection_pal <- all_palette(length(collections))
+        # Make PCA plot
         p <- ggplot(pca_res, aes(x = PC1, y = PC2, color = !!sym(input$Color))) + 
           geom_point(size=2) + 
           theme_minimal() +
