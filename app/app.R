@@ -13,6 +13,8 @@ library(Matrix)
 library(viridis)
 library(factoextra)
 
+## Set up some global variables ================================================
+
 # Define Cell types
 cell_types <- c("Acinar", "Active Stellate", "Alpha", "Beta", "Cycling Alpha", "Delta", "Ductal", "Endothelial", "Gamma + Epsilon", "Immune", "MUC5B+ Ductal", "Quiescent Stellate")
 
@@ -23,7 +25,7 @@ color_vars <- c("Description of diabetes status", "Age (years)", "Sex", "BMI", "
 all_palette <- colorRampPalette(c("#FFBE0B", "#FB5607", "#FF006E", "#8338EC", "#3A86FF"))
 
 
-# Define UI for application that plots PCAs
+## Define UI for application that plots PCAs ===================================
 ui <- fluidPage(
   
   shinybrowser::detect(),
@@ -56,10 +58,12 @@ ui <- fluidPage(
                            "Download PCA")
         ),
         mainPanel(
+           p(),
+           p(),
            plotOutput("PCAPlot")
         )
     ),
-    # For PCA contributions ----------------------------------------------------
+    # To plot PCA contributions ------------------------------------------------
     sidebarLayout(
       sidebarPanel(
         selectInput("PC",
@@ -75,9 +79,11 @@ ui <- fluidPage(
     )
 )
 
-# Define server logic required to draw PCA plots -------------------------------
+## Define server logic required to draw PCA plots ==============================
+
 server <- function(input, output) {
-  
+    
+    # Make PCA plot ------------------------------------------------------------
     PCA_fxn <- function() {
       # Make sure name for "Immune (Macrophages)" is changed to "Immune"
       if (input$CellType == "Immune") {
@@ -170,6 +176,7 @@ server <- function(input, output) {
         PCA_fxn()
     })
     
+    # Make PCA contributions plot ----------------------------------------------
     contribs_fxn <- function() {
       # Make sure name for "Immune (Macrophages)" is changed to "Immune"
       if (input$CellType == "Immune") {
@@ -212,5 +219,5 @@ server <- function(input, output) {
     )
 }
 
-# Run the application 
+## Run the application ---------------------------------------------------------
 shinyApp(ui = ui, server = server)
