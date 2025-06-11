@@ -1,10 +1,6 @@
 #
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    https://shiny.posit.co/
+# This is the Shiny web application that runs the PCA Explorer for PanKbase
+# See it live at https://pankbase.org/donor-metadata.html
 #
 
 library(shiny)
@@ -17,15 +13,17 @@ library(Matrix)
 library(viridis)
 library(factoextra)
 
-cell_types <- c("Acinar", "Active Stellate", "Alpha", "Beta", "Cycling Alpha", "Delta", "Ductal", "Endothelial", "Gamma + Epsilon", "Immune (Macrophages)", "MUC5B+ Ductal", "Quiescent Stellate")
+# Define Cell types
+cell_types <- c("Acinar", "Active Stellate", "Alpha", "Beta", "Cycling Alpha", "Delta", "Ductal", "Endothelial", "Gamma + Epsilon", "Immune", "MUC5B+ Ductal", "Quiescent Stellate")
 
-color_vars <- c("Description of diabetes status", "Age (years)", "Sex", "BMI", "Ethnicity", "Cause of death", "HbA1C percentage", "Chemistry", "Program")
+# Define variables to color by
+color_vars <- c("Description of diabetes status", "Age (years)", "Sex", "BMI", "Ethnicity", "Cause of death", "HbA1C percentage", "Treatment", "Chemistry", "Program")
 
-#set up color palette
+# Set up universal color palette
 all_palette <- colorRampPalette(c("#FFBE0B", "#FB5607", "#FF006E", "#8338EC", "#3A86FF"))
 
 
-# Define UI for application that draws a histogram
+# Define UI for application that plots PCAs
 ui <- fluidPage(
   
   shinybrowser::detect(),
@@ -44,10 +42,8 @@ ui <- fluidPage(
 }
   "))),
 
-    # Application title
-    titlePanel("PanKbase PCA of pseudobulk RNA data"),
 
-    # Sidebar with a slider input for number of bins 
+    # To plot PCA -------------------------------------------------------------- 
     sidebarLayout(
         sidebarPanel(
             selectInput("CellType",
@@ -59,12 +55,11 @@ ui <- fluidPage(
             downloadButton("DownloadPCA", 
                            "Download PCA")
         ),
-
-        # Show a plot of the generated distribution
         mainPanel(
            plotOutput("PCAPlot")
         )
     ),
+    # For PCA contributions ----------------------------------------------------
     sidebarLayout(
       sidebarPanel(
         selectInput("PC",
@@ -80,16 +75,23 @@ ui <- fluidPage(
     )
 )
 
-# Define server logic required to draw PCA plots
+# Define server logic required to draw PCA plots -------------------------------
 server <- function(input, output) {
   
     PCA_fxn <- function() {
-      # Get pseudobulk data for this cell type and filter for only untreated samples
-      fname <- paste0("/Users/lbrusman/Desktop/Gaulton_lab/shiny_apps/PanKbase-RNA-expression-PCA-Explorer/app/outputs/PCA_results/", input$CellType, "_PCA_results.csv")
+      # Make sure name for "Immune (Macrophages)" is changed to "Immune"
+      if (input$CellType == "Immune") {
+        cell_name <- "Immune (Macrophages)"
+      }
+      else {
+        cell_name <- input$CellType
+      }
+      
+      # Read in pseudobulk data for this cell type
+      fname <- paste0("outputs/PCA_results/", cell_name, "_PCA_results.csv")
       pca_res <- read.csv(fname)
       
-      # Make values friendly, combine categories, etc.
-      # Change capitalization and naming of some metadata fields
+      # Make values friendly, combine categories, change capitalization, etc.
       pca_res$pan_kbase_description_of_diabetes_status <- recode(pca_res$pan_kbase_description_of_diabetes_status,
                                                                  "non-diabetic" = "No diabetes",
                                                                  "type 1 diabetes" = "Type 1 diabetes",
@@ -112,7 +114,6 @@ server <- function(input, output) {
       pca_res$source <- recode(pca_res$source,
                                 "IIDP,Prodo" = "IIDP")
 
-      # Rename values that have different capitalization so they get grouped together and change blanks to unknown
       pca_res$pan_kbase_cause_of_death <- recode(na_if(pca_res$pan_kbase_cause_of_death, ""),
                                                  "Cerebrovascular/stroke" = "Cerebrovascular/Stroke",
                                                  "Head Trauma" = "Head trauma",
@@ -131,21 +132,23 @@ server <- function(input, output) {
                                     "Sex" = pan_kbase_sex,
                                     "BMI" = pan_kbase_bmi,
                                     "Ethnicity" = pan_kbase_ethnicities,
-                                    "Chemistry" = chemistry)
+                                    "Chemistry" = chemistry,
+                                    "Treatment" = treatments)
 
-
+      # Draw plots to color by continuous variables
       if (is.numeric(pca_res[,input$Color]) == TRUE) {
         p <- ggplot(pca_res, aes(x = PC1, y = PC2, color = !!sym(input$Color))) +
           geom_point(size=2) +
           scale_color_gradientn(colors = viridis(length(unique(pca_res[,input$Color])))) +
           theme_minimal() +
           labs(color = input$Color) +
-          theme(text = element_text(size=16),
+          theme(text = element_text(size=14),
                 plot.title = element_text(hjust = 0.5)) +
-          ggtitle(paste0(input$CellType, " Cells: CPM-normalized Counts"))
+          ggtitle(paste0(input$CellType, " Cells"))
         print(p)
       }
       
+      # Draw plots to color by categorical variables
       else {
         # Set up color palettes
         collections <- unique(pca_res[,input$Color]) %>% sort()
@@ -157,7 +160,7 @@ server <- function(input, output) {
           labs(color = input$Color) +
           theme(text = element_text(size=14),
                 plot.title = element_text(hjust = 0.5)) +
-          ggtitle(paste0(input$CellType, " Cells: CPM-normalized Counts"))
+          ggtitle(paste0(input$CellType, " Cells"))
         print(p)
       }
 
@@ -168,9 +171,19 @@ server <- function(input, output) {
     })
     
     contribs_fxn <- function() {
-      fname <- paste0("/Users/lbrusman/Desktop/Gaulton_lab/shiny_apps/PanKbase-RNA-expression-PCA-Explorer/app/outputs/PCA_results/", input$CellType, "_all_PCA_results.rds")
+      # Make sure name for "Immune (Macrophages)" is changed to "Immune"
+      if (input$CellType == "Immune") {
+        cell_name <- "Immune (Macrophages)"
+      }
+      else {
+        cell_name <- input$CellType
+      }
+      
+      # Read in RDS file with PCA results
+      fname <- paste0("outputs/PCA_results/", cell_name, "_all_PCA_results.rds")
       pca_res_all <- readRDS(fname)
-
+      
+      # Plot top contributing genes
       p <- fviz_contrib(pca_res_all, choice = "var", axes = as.numeric(input$PC), top = 10, fill = "#219197", color = "#219197", ggtheme = theme_classic()) +
         ggtitle(paste0("Contributions of genes to PC", input$PC)) +
         theme(axis.text = element_text(size=12),
@@ -183,6 +196,7 @@ server <- function(input, output) {
       contribs_fxn()
     })
     
+    # Make downloaders ---------------------------------------------------------
     output$DownloadPCA <- downloadHandler(
       filename = function() {paste0("PanKbase_GeneExpr_PCA_", Sys.time(), ".png")},
       content = function(file) {
