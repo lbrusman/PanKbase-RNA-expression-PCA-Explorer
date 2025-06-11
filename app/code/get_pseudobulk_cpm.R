@@ -12,8 +12,8 @@ pankbase_data <- readRDS("/tscc/nfs/home/lebrusman/Gaulton_lab/data/ADA_object/2
 # Clean column names for ease of use
 colnames(pankbase_data@meta.data) <- colnames(pankbase_data@meta.data) %>% make_clean_names()
 
-# Set working directory
-setwd("outputs/CPM_matrices/")
+# Set working directory to save to
+setwd("../outputs/CPM_matrices/")
 
 # Get cell type proportions
 props <- prop.table(table(pankbase_data$cell_type, pankbase_data$samples), margin=2) %>% as.data.frame()

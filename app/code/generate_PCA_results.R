@@ -15,7 +15,7 @@ cell_types <- c("Acinar", "Active Stellate", "Alpha", "Beta", "Cycling Alpha", "
 
 for (c in cell_types) {
   # Get pseudobulk data for this cell type
-  fname <- paste0("/Users/lbrusman/Desktop/Gaulton_lab/shiny_apps/PanKbase-RNA-expression-PCA-Explorer/app/outputs/CPM_matrices/", c, "_pseudobulk_cpm.csv")
+  fname <- paste0("../outputs/CPM_matrices/", c, "_pseudobulk_cpm.csv")
   pseudo_df <- read.csv(fname)
 
   # Get all gene names
@@ -29,7 +29,7 @@ for (c in cell_types) {
   res_pca <- prcomp(to_plot, scale = TRUE)
   
   # Save RDS for factor contributions
-  setwd("/Users/lbrusman/Desktop/Gaulton_lab/shiny_apps/PanKbase-RNA-expression-PCA-Explorer/app/outputs/PCA_results/")
+  setwd("../outputs/PCA_results/")
   fname <- paste0(c, "_all_PCA_results.rds")
   saveRDS(res_pca, fname)
   
