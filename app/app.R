@@ -19,7 +19,7 @@ library(factoextra)
 cell_types <- c("Acinar", "Active Stellate", "Alpha", "Beta", "Cycling Alpha", "Delta", "Ductal", "Endothelial", "Gamma + Epsilon", "Immune", "MUC5B+ Ductal", "Quiescent Stellate")
 
 # Define variables to color by
-color_vars <- c("Description of diabetes status", "Age (years)", "Sex", "BMI", "Ethnicity", "Cause of death", "HbA1C percentage", "Treatment", "Chemistry", "Program")
+color_vars <- c("Program", "Description of diabetes status", "Age (years)", "Sex", "BMI", "Ethnicity", "Cause of death", "HbA1C percentage", "Treatment", "Chemistry")
 
 # Set up universal color palette
 all_palette <- colorRampPalette(c("#FFBE0B", "#FB5607", "#FF006E", "#8338EC", "#3A86FF"))
@@ -54,13 +54,22 @@ ui <- fluidPage(
             selectInput("Color",
                         "Color by:",
                         choices = color_vars),
+            selectInput("PCx",
+                        "x-axis PC",
+                        choices = paste0("PC", 1:10),
+                        selected = "PC1"),
+            selectInput("PCy",
+                        "y-axis PC",
+                        choices = paste0("PC", 1:10),
+                        selected = "PC2"),
             downloadButton("DownloadPCA", 
                            "Download PCA")
         ),
         mainPanel(
            p(),
            p(),
-           plotOutput("PCAPlot")
+           plotOutput("PCAPlot",
+                      height = 800)
         )
     ),
     # To plot PCA contributions ------------------------------------------------
@@ -144,13 +153,13 @@ server <- function(input, output) {
       # Draw plots to color by continuous variables
       if (is.numeric(pca_res[,input$Color]) == TRUE) {
         # Make PCA plot
-        p <- ggplot(pca_res, aes(x = PC1, y = PC2, color = !!sym(input$Color))) +
+        p <- ggplot(pca_res, aes(x = !!sym(input$PCx), y = !!sym(input$PCy), color = !!sym(input$Color))) +
           geom_point(size=2) +
           scale_color_gradientn(colors = viridis(length(unique(pca_res[,input$Color])))) +
           theme_minimal() +
           labs(color = input$Color) +
-          theme(text = element_text(size=14),
-                plot.title = element_text(hjust = 0.5)) +
+          theme(text = element_text(size=16),
+                plot.title = element_text(hjust = 0.5, size=18)) +
           ggtitle(paste0(input$CellType, " Cells"))
         print(p)
       }
@@ -161,13 +170,13 @@ server <- function(input, output) {
         collections <- unique(pca_res[,input$Color]) %>% sort()
         collection_pal <- all_palette(length(collections))
         # Make PCA plot
-        p <- ggplot(pca_res, aes(x = PC1, y = PC2, color = !!sym(input$Color))) + 
+        p <- ggplot(pca_res, aes(x = !!sym(input$PCx), y = !!sym(input$PCy), color = !!sym(input$Color))) + 
           geom_point(size=2) + 
           theme_minimal() +
           scale_color_manual(values = collection_pal) +
           labs(color = input$Color) +
-          theme(text = element_text(size=14),
-                plot.title = element_text(hjust = 0.5)) +
+          theme(text = element_text(size=16),
+                plot.title = element_text(hjust = 0.5, size=18)) +
           ggtitle(paste0(input$CellType, " Cells"))
         print(p)
       }
@@ -195,9 +204,9 @@ server <- function(input, output) {
       # Plot top contributing genes
       p <- fviz_contrib(pca_res_all, choice = "var", axes = as.numeric(input$PC), top = 10, fill = "#219197", color = "#219197", ggtheme = theme_classic()) +
         ggtitle(paste0("Contributions of genes to PC", input$PC)) +
-        theme(axis.text = element_text(size=12),
-              axis.title = element_text(size=14),
-              plot.title = element_text(size=16, hjust = 0.5))
+        theme(axis.text = element_text(size=14),
+              axis.title = element_text(size=16),
+              plot.title = element_text(size=18, hjust = 0.5))
       print(p)
     }
     

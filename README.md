@@ -4,7 +4,7 @@
  This is the Shiny application that runs the PCA Explorer Tool for [PanKbase](https://pankbase.org). See it live here.
  
  All data used in this app are available via the [PanKbase Integrated Cell Browser](https://dev.pankbase.org/single-cell.html?datasetId=islet_of_Langerhans_scRNA_v3-3). 
- These data are from the "Single cell expression map of pancreatic islets using data from HPAP, IIDP, and Prodo" (version v3).
+ These data are from the "Single cell expression map of pancreatic islets using data from HPAP, IIDP, and Prodo" ([Version v3.3](https://zenodo.org/records/15596314)).
  
  How to run this app yourself:
  
