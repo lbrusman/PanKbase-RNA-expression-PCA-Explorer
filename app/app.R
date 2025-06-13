@@ -4,6 +4,7 @@
 #
 
 library(shiny)
+library(shinyBS)
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
@@ -21,7 +22,13 @@ cell_types <- c("Acinar", "Active Stellate", "Alpha", "Beta", "Cycling Alpha", "
 # Define variables to color by
 color_vars <- c("Program", "Description of diabetes status", "Age (years)", "Sex", "BMI", "Ethnicity", "Cause of death", "HbA1C percentage", "Treatment", "Chemistry")
 
-# Set up universal color palette
+# # Get metadata from PCA results (any cell type works). This is for hover IDs
+# fname <- paste0("outputs/PCA_results/Beta_PCA_results.csv")
+# metadata <- read.csv(fname)
+# pc_cols <- colnames(metadata)[grep("PC", colnames(metadata))]
+# metadata <- metadata[,!colnames(metadata) %in% pc_cols]
+# sample_ids <- metadata$samples
+
 all_palette <- colorRampPalette(c("#FFBE0B", "#FB5607", "#FF006E", "#8338EC", "#3A86FF"))
 
 
@@ -54,12 +61,16 @@ ui <- fluidPage(
             selectInput("Color",
                         "Color by:",
                         choices = color_vars),
+            selectInput("label",
+                        "Label:",
+                        choices = color_vars,
+                        selected = "Description of diabetes status"),
             selectInput("PCx",
-                        "x-axis PC",
+                        "x-axis PC:",
                         choices = paste0("PC", 1:10),
                         selected = "PC1"),
             selectInput("PCy",
-                        "y-axis PC",
+                        "y-axis PC:",
                         choices = paste0("PC", 1:10),
                         selected = "PC2"),
             downloadButton("DownloadPCA", 
@@ -68,8 +79,14 @@ ui <- fluidPage(
         mainPanel(
            p(),
            p(),
-           plotOutput("PCAPlot",
+           div(
+             style = "position:relative;",
+             plotOutput("PCAPlot",
+                      hover = hoverOpts(id = "plot_hover", delay=100, delayType = "debounce"),
                       height = 800)
+           ),
+           uiOutput("hover_info",
+                    style = "pointer-events: none; ")
         )
     ),
     # To plot PCA contributions ------------------------------------------------
@@ -91,9 +108,8 @@ ui <- fluidPage(
 ## Define server logic required to draw PCA plots ==============================
 
 server <- function(input, output) {
-    
-    # Make PCA plot ------------------------------------------------------------
-    PCA_fxn <- function() {
+    # Define reactive function to read in files and update data
+    cell_type_data <- reactive({
       # Make sure name for "Immune (Macrophages)" is changed to "Immune"
       if (input$CellType == "Immune") {
         cell_name <- "Immune (Macrophages)"
@@ -116,19 +132,19 @@ server <- function(input, output) {
                                                                  "diabetes unspecified" = "Diabetes unspecified",
                                                                  "steroid-induced diabetes" = "Steroid-induced diabetes",
                                                                  "monogenic diabetes" = "Monogenic diabetes")
-
+      
       pca_res$pan_kbase_ethnicities <- recode(na_if(pca_res$pan_kbase_ethnicities, ""),
                                               "African American,Black" = "African American, Black",
                                               "Caucasian" = "White",
                                               .missing = "Unknown")
-
+      
       pca_res$pan_kbase_sex <- recode(pca_res$pan_kbase_sex,
                                       female = "Female",
                                       male = "Male")
-
+      
       pca_res$source <- recode(pca_res$source,
-                                "IIDP,Prodo" = "IIDP")
-
+                               "IIDP,Prodo" = "IIDP")
+      
       pca_res$pan_kbase_cause_of_death <- recode(na_if(pca_res$pan_kbase_cause_of_death, ""),
                                                  "Cerebrovascular/stroke" = "Cerebrovascular/Stroke",
                                                  "Head Trauma" = "Head trauma",
@@ -136,7 +152,7 @@ server <- function(input, output) {
                                                  "Cerebral Edema (DKA)" = "Cerebral edema (DKA)",
                                                  "IHC" = "Cerebrovascular/Stroke",
                                                  .missing = "Unknown")
-
+      
       # Rename columns to friendly names
       pca_res <- pca_res %>% rename("Program" = source,
                                     "Age (years)" = pan_kbase_age_years,
@@ -149,40 +165,87 @@ server <- function(input, output) {
                                     "Ethnicity" = pan_kbase_ethnicities,
                                     "Chemistry" = chemistry,
                                     "Treatment" = treatments)
+      
+      return(pca_res)
+    })
 
+  
+    # Make PCA plot ------------------------------------------------------------
+    PCA_fxn <- reactive( {
       # Draw plots to color by continuous variables
-      if (is.numeric(pca_res[,input$Color]) == TRUE) {
+      if (is.numeric(cell_type_data()[,input$Color]) == TRUE) {
         # Make PCA plot
-        p <- ggplot(pca_res, aes(x = !!sym(input$PCx), y = !!sym(input$PCy), color = !!sym(input$Color))) +
+        p <- ggplot(cell_type_data(), aes(x = !!sym(input$PCx), y = !!sym(input$PCy), color = !!sym(input$Color))) +
           geom_point(size=2) +
-          scale_color_gradientn(colors = viridis(length(unique(pca_res[,input$Color])))) +
+          scale_color_gradientn(colors = viridis(length(unique(cell_type_data()[,input$Color])))) +
           theme_minimal() +
           labs(color = input$Color) +
           theme(text = element_text(size=16),
                 plot.title = element_text(hjust = 0.5, size=18)) +
           ggtitle(paste0(input$CellType, " Cells"))
-        print(p)
+        p
       }
       
       # Draw plots to color by categorical variables
       else {
         # Set up color palettes
-        collections <- unique(pca_res[,input$Color]) %>% sort()
+        collections <- unique(cell_type_data()[,input$Color]) %>% sort()
         collection_pal <- all_palette(length(collections))
         # Make PCA plot
-        p <- ggplot(pca_res, aes(x = !!sym(input$PCx), y = !!sym(input$PCy), color = !!sym(input$Color))) + 
-          geom_point(size=2) + 
+        p <- ggplot(cell_type_data(), aes(x = !!sym(input$PCx), y = !!sym(input$PCy), color = !!sym(input$Color))) + 
+          geom_point(size=2) +
           theme_minimal() +
           scale_color_manual(values = collection_pal) +
           labs(color = input$Color) +
           theme(text = element_text(size=16),
                 plot.title = element_text(hjust = 0.5, size=18)) +
           ggtitle(paste0(input$CellType, " Cells"))
-        print(p)
+        p
       }
 
-    }
-
+    })
+    
+    # Create box that appears when you hover over a point with additional info -
+    output$hover_info <- renderUI({
+      # Get location of hover
+      hover <- input$plot_hover
+      # Find near point
+      point <- nearPoints(cell_type_data(), hover, threshold=8, maxpoints=1, addDist=TRUE)
+      if (nrow(point) == 0) return(NULL)
+      
+      # Calculate point position INSIDE the image as percent of total dimensions
+      # From left (horizontal) and from top (vertical)
+      left_pct <- (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+      top_pct <- (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+      
+      # Find distance from left and bottom side of the picture in pixels
+      left_px <- hover$coords_css$x
+      top_px <- hover$coords_css$y
+      
+      
+      # Create style property for tooltip
+      # Background color is set so tooltip is a bit transparent
+      # z-index is set so we are sure are tooltip will be on top
+      style <- paste0("position:absolute; z-index:100; background-color: rgba(148, 201, 94, 0.6); display: inline-block; padding: 3px; ",
+                      "left:", left_px + 20, "px; top:", top_px + 15, "px;")
+      
+      # Create label that will fit in box
+      if (input$label == "Description of diabetes status") {
+        lab <- "Diabetes status"
+      }
+      else {
+        lab <- input$label
+      }
+      
+      # Actual tooltip created as wellPanel
+      wellPanel(
+        style = style,
+        p(HTML(paste0("<b> ID: </b>", point$samples, "<br/>",
+                      "<b>", lab, ": </b>", point[,input$label])))
+      )
+      
+    })
+    
     output$PCAPlot <- renderPlot({
         PCA_fxn()
     })
@@ -203,7 +266,7 @@ server <- function(input, output) {
       
       # Plot top contributing genes
       p <- fviz_contrib(pca_res_all, choice = "var", axes = as.numeric(input$PC), top = 10, fill = "#219197", color = "#219197", ggtheme = theme_classic()) +
-        ggtitle(paste0("Contributions of genes to PC", input$PC)) +
+        ggtitle(paste0("Top genes contributing to variability along PC", input$PC)) +
         theme(axis.text = element_text(size=14),
               axis.title = element_text(size=16),
               plot.title = element_text(size=18, hjust = 0.5))
@@ -230,5 +293,5 @@ server <- function(input, output) {
     )
 }
 
-## Run the application ---------------------------------------------------------
+## Run the application =========================================================
 shinyApp(ui = ui, server = server)
