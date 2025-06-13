@@ -1,6 +1,6 @@
 #
 # This is the Shiny web application that runs the PCA Explorer for PanKbase
-# See it live at https://pankbase.org/donor-metadata.html
+# See it live at https://pankbase.org/pca-explorer.html
 #
 
 library(shiny)
