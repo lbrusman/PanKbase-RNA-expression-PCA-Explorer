@@ -22,17 +22,12 @@ cell_types <- c("Acinar", "Active Stellate", "Alpha", "Beta", "Cycling Alpha", "
 # Define variables to color by
 color_vars <- c("Program", "Description of diabetes status", "Age (years)", "Sex", "BMI", "Ethnicity", "Cause of death", "HbA1C percentage", "Treatment", "Chemistry")
 
-# # Get metadata from PCA results (any cell type works). This is for hover IDs
-# fname <- paste0("outputs/PCA_results/Beta_PCA_results.csv")
-# metadata <- read.csv(fname)
-# pc_cols <- colnames(metadata)[grep("PC", colnames(metadata))]
-# metadata <- metadata[,!colnames(metadata) %in% pc_cols]
-# sample_ids <- metadata$samples
-
+# Set up universal color palette
 all_palette <- colorRampPalette(c("#FFBE0B", "#FB5607", "#FF006E", "#8338EC", "#3A86FF"))
 
 
 ## Define UI for application that plots PCAs ===================================
+
 ui <- fluidPage(
   
   shinybrowser::detect(),
@@ -121,7 +116,7 @@ server <- function(input, output) {
       # Read in pseudobulk data for this cell type
       fname <- paste0("outputs/PCA_results/", cell_name, "_PCA_results.csv")
       pca_res <- read.csv(fname)
-      
+
       # Make values friendly, combine categories, change capitalization, etc.
       pca_res$pan_kbase_description_of_diabetes_status <- recode(pca_res$pan_kbase_description_of_diabetes_status,
                                                                  "non-diabetic" = "No diabetes",
@@ -221,7 +216,6 @@ server <- function(input, output) {
       # Find distance from left and bottom side of the picture in pixels
       left_px <- hover$coords_css$x
       top_px <- hover$coords_css$y
-      
       
       # Create style property for tooltip
       # Background color is set so tooltip is a bit transparent
