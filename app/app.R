@@ -57,7 +57,7 @@ ui <- fluidPage(
                         "Color by:",
                         choices = color_vars),
             selectInput("label",
-                        "Label:",
+                        "Hover Label:",
                         choices = color_vars,
                         selected = "Description of diabetes status"),
             selectInput("PCx",
@@ -160,6 +160,9 @@ server <- function(input, output) {
                                     "Ethnicity" = pan_kbase_ethnicities,
                                     "Chemistry" = chemistry,
                                     "Treatment" = treatments)
+      
+      # Change SRR for HPAP to NA
+      pca_res$samples_split <- ifelse(grepl("HPAP", pca_res$samples_split)==TRUE | grepl("SAMN", pca_res$samples_split)==TRUE, "N/A", pca_res$samples_split)
       
       return(pca_res)
     })
