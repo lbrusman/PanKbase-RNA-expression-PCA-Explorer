@@ -36,8 +36,9 @@ for (c in cell_types) {
   # Merge PCA results with metadata
   res <- res_pca$x %>% as.data.frame()
   res$samples <- pseudo_df$samples
-  res <- res %>% merge(pseudo_df[,1:75], on = "samples")
-  
+  res$treatments <- pseudo_df$treatments
+  res <- res %>% merge(pseudo_df[,1:75], on = c("samples", "treatments"))
+
   # Save PC results merged with metadata
   fname <- paste0(c, "_PCA_results.csv")
   write.csv(res, fname)

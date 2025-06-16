@@ -234,7 +234,8 @@ server <- function(input, output) {
       # Actual tooltip created as wellPanel
       wellPanel(
         style = style,
-        p(HTML(paste0("<b> ID: </b>", point$samples, "<br/>",
+        p(HTML(paste0("<b> PanKbase ID: </b>", point$pan_kbase_aliases, "<br/>",
+                      "<b> SRR: </b>", point$samples_split, "<br/>",
                       "<b>", lab, ": </b>", point[,input$label])))
       )
       
