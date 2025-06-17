@@ -8,7 +8,7 @@
  
  How to run this app yourself:
  
- - First, run [`get_pseudobulk_cpm.R`](app/code/get_pseudobulk_cpm.R) to generate pseudo-bulk gene expression matrices
+ - First, run [`get_pseudobulk_cpm.R`](app/code/get_pseudobulk_cpm.R) to generate pseudo-bulk gene expression matrices 
  
  - Then, generate PCA results using [`generate_PCA_results.R`](app/code/generate_PCA_results.R)
  
